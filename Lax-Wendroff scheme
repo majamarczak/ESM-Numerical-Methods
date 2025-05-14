@@ -1,75 +1,61 @@
-import numpy as N
-import matplotlib.pyplot as P
-import math as M
+#n goes for time index, j - for x index
+L=2500
+dt=2000/3600            #[h]
+dx=25          #[km]
+u0=36           #[km/h]
+C0=10
+T=int(L/u0)
+nt_len= int(T/dt)  
 
-nt_len=720
-dt=300.0
-fCor=0.0001
+x_grid=np.zeros(int(2500/25)+1)
+for i in range(x_grid.shape[0]):
+    x_grid[i]=i*25
 
-u=N.zeros((nt_len))
-u_p=N.zeros((nt_len))
-u_ana=N.zeros((nt_len))
-v=N.zeros((nt_len))
-v_p=N.zeros((nt_len))
-v_ana=N.zeros((nt_len))
-time=N.zeros((nt_len))
+C=np.zeros((x_grid.shape[0],nt_len))      #C(x,t)
 
-#analytical solution
-u_ana[0]=10.0
-v_ana[0]=0
-for nt in range(1,nt_len):
-    time[nt]=time[nt-1]+dt
-    u_ana[nt]=10*N.cos(fCor*time[nt])
-    v_ana[nt]=-10*N.sin(fCor*time[nt])
+for k in range(0,1125,25):
+    C[int(k/25),0]=0
 
-#initial conditions 
-u[0]=10.0
-v[0]=0.0
+for k in range(1125,1375,25):
+    C[int(k/25),0]=C0
 
-for nt in range(1,nt_len):
-    #predictor step: - is a scalar that later i plug into u and v vector
-    u_p=u[nt-1]+(fCor * v[nt-1]*dt)
-    v_p=v[nt-1]-(fCor * u[nt-1]*dt)
-    #corrector step:
-    u[nt]=u[nt-1]+dt*fCor*v_p
-    v[nt]=v[nt-1]-dt*fCor*u_p
+for k in range(1375,2525,25):
+    C[int(k/25),0]=0
 
-#kinetic energy
-KE = 0.5*(u**2+v**2)
+sigma=u0*dt/dx
 
-#difference vector between analytical solution and numerical one for velocity
-#V=(diff_u, diff_v)
-diff_u=u-u_ana
-diff_v=v-v_ana
-#magnitude of the difference vector:
-err_V=N.sqrt((diff_u)**2+(diff_v)**2)
+for n in range(nt_len-1):                 
+    for j in range(1, x_grid.shape[0]-1):  
+        C[j,n+1] = (C[j,n] + 
+                    sigma * (C[j+1,n] - C[j-1,n]) / 2 + 
+                    (sigma**2 / 2) * (C[j+1,n] - 2*C[j,n] + C[j-1,n]))
+
+    # Periodic boundaries:
+    C[0,n+1] = (C[0,n] + 
+                sigma * (C[1,n] - C[-2,n]) / 2 + 
+                (sigma**2 / 2) * (C[1,n] - 2*C[0,n] + C[-2,n]))
+    
+    C[-1,n+1] = C[0,n+1]  # duplicate first point (optional if you're plotting closed loop)
 
 
+plt.figure(figsize=(10,6))
+for t in [0, int(nt_len/4), int(nt_len/2), int(3*nt_len/4), nt_len-1]:
+    plt.plot(x_grid, C[:,t], label=f't={t*dt/3600:.1f}h')
+plt.xlabel('x [km]')
+plt.ylabel('C(x,t)')
+plt.title('Lax-Wendroff Advection')
+plt.legend()
+plt.grid()
+plt.show()   
 
-P.figure()
-P.figure(figsize=(7,6))
-P.xlabel('time[hrs]', fontsize=15)
-P.ylabel('Velocity u[m/s]', fontsize=15)
-P.plot(time/3600, u,'--', linewidth=3,label='Numerical u (Matsuno)')
-P.plot(time/3600, u_ana, label='Analytical u')
-P.legend()
-P.title('u vs Analytical u')
-P.grid()
-P.show()   
-P.savefig('u_vs_a_ana')
 
-P.figure()
-P.plot(time/3600, KE)
-P.xlabel('Time (hours)')
-P.ylabel('Kinetic Energy (m^2/s^2)')
-P.title('Kinetic Energy over Time (Matsuno)')
-P.grid()
-P.show()
-
-P.figure()
-P.plot(time/3600, err_V)
-P.xlabel('Time (hours)')
-P.ylabel('Velocity Error (m/s)')
-P.title('Velocity Error over Time (Matsuno)')
-P.grid()
-P.show()
+'''
+plt.figure()
+plt.figure(figsize=(7,6))
+plt.xlabel('x [km]', fontsize=15)
+plt.ylabel('C(x, t_max)', fontsize=15)
+plt.plot(x_grid, C[:,-10],'--', linewidth=1)
+plt.title('idk')
+plt.grid()
+plt.show() 
+'''
