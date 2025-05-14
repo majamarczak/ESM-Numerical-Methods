@@ -1,0 +1,75 @@
+import numpy as N
+import matplotlib.pyplot as P
+import math as M
+
+nt_len=720
+dt=300.0
+fCor=0.0001
+
+u=N.zeros((nt_len))
+u_p=N.zeros((nt_len))
+u_ana=N.zeros((nt_len))
+v=N.zeros((nt_len))
+v_p=N.zeros((nt_len))
+v_ana=N.zeros((nt_len))
+time=N.zeros((nt_len))
+
+#analytical solution
+u_ana[0]=10.0
+v_ana[0]=0
+for nt in range(1,nt_len):
+    time[nt]=time[nt-1]+dt
+    u_ana[nt]=10*N.cos(fCor*time[nt])
+    v_ana[nt]=-10*N.sin(fCor*time[nt])
+
+#initial conditions 
+u[0]=10.0
+v[0]=0.0
+
+for nt in range(1,nt_len):
+    #predictor step: - is a scalar that later i plug into u and v vector
+    u_p=u[nt-1]+(fCor * v[nt-1]*dt)
+    v_p=v[nt-1]-(fCor * u[nt-1]*dt)
+    #corrector step:
+    u[nt]=u[nt-1]+dt*fCor*v_p
+    v[nt]=v[nt-1]-dt*fCor*u_p
+
+#kinetic energy
+KE = 0.5*(u**2+v**2)
+
+#difference vector between analytical solution and numerical one for velocity
+#V=(diff_u, diff_v)
+diff_u=u-u_ana
+diff_v=v-v_ana
+#magnitude of the difference vector:
+err_V=N.sqrt((diff_u)**2+(diff_v)**2)
+
+
+
+P.figure()
+P.figure(figsize=(7,6))
+P.xlabel('time[hrs]', fontsize=15)
+P.ylabel('Velocity u[m/s]', fontsize=15)
+P.plot(time/3600, u,'--', linewidth=3,label='Numerical u (Matsuno)')
+P.plot(time/3600, u_ana, label='Analytical u')
+P.legend()
+P.title('u vs Analytical u')
+P.grid()
+P.show()   
+P.savefig('u_vs_a_ana')
+
+P.figure()
+P.plot(time/3600, KE)
+P.xlabel('Time (hours)')
+P.ylabel('Kinetic Energy (m^2/s^2)')
+P.title('Kinetic Energy over Time (Matsuno)')
+P.grid()
+P.show()
+
+P.figure()
+P.plot(time/3600, err_V)
+P.xlabel('Time (hours)')
+P.ylabel('Velocity Error (m/s)')
+P.title('Velocity Error over Time (Matsuno)')
+P.grid()
+P.show()
